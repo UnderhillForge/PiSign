@@ -154,6 +154,9 @@
               option.textContent = name;
               fontSelect.appendChild(option);
             });
+            console.log('Fonts loaded from config:', Object.keys(cfg.availableFonts));
+          } else {
+            console.warn('No availableFonts in config.json');
           }
           
           if (cfg.bg) {
@@ -169,7 +172,19 @@
               if (thumb) thumb.classList.add('selected');
             }
           }
-          if (cfg.font) fontSelect.value = cfg.font;
+          
+          // Set the selected font after options are populated
+          if (cfg.font) {
+            fontSelect.value = cfg.font;
+            console.log('Font set to:', cfg.font);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load config:', err);
+          // Provide fallback fonts if config fails
+          fontSelect.innerHTML = '<option value="Arial, sans-serif">Arial</option>' +
+                                 '<option value="Georgia, serif">Georgia</option>' +
+                                 '<option value="\'Comic Sans MS\', cursive">Comic Sans</option>';
         });
     }
 
@@ -357,7 +372,26 @@
     }
 
     // === Start ===
+    // Load backgrounds and then config (which populates fonts)
     loadBackgrounds();
+    
+    // Also load fonts immediately as a backup to ensure they're available
+    setTimeout(() => {
+      fetch('config.json')
+        .then(r => r.ok ? r.json() : {})
+        .then(cfg => {
+          if (cfg.availableFonts && fontSelect.children.length === 0) {
+            Object.entries(cfg.availableFonts).forEach(([name, value]) => {
+              const option = document.createElement('option');
+              option.value = value;
+              option.textContent = name;
+              fontSelect.appendChild(option);
+            });
+            if (cfg.font) fontSelect.value = cfg.font;
+          }
+        })
+        .catch(err => console.error('Fallback font load failed:', err));
+    }, 100);
 
     // === Toast helper ===
     (function(){
